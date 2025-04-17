@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>معرض الصور الخرافي</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(to bottom, #121212, #1f1f1f);
+      color: #eee;
+    }
+
+    header {
+      background-color: #0e0e0e;
+      padding: 20px;
+      text-align: center;
+      color: #00ffc3;
+      font-size: 2em;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .image-box {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      animation: fadeIn 1.2s ease;
+    }
+
+    .image-box img {
+      width: 100%;
+      height: auto;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      border-radius: 12px;
+    }
+
+    .image-box img:hover {
+      transform: scale(1.03);
+    }
+
+    .lightbox {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.9);
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .lightbox.active {
+      display: flex;
+    }
+
+    .lightbox img {
+      max-width: 90%;
+      max-height: 80%;
+      border-radius: 10px;
+      box-shadow: 0 0 20px #00ffc3;
+      transition: transform 0.3s ease;
+      cursor: zoom-in;
+      position: relative;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 30px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 40px;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px 15px;
+      border-radius: 50%;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .prev-btn {
+      right: 80px;
+    }
+
+    .next-btn {
+      left: 80px;
+    }
+
+    .save-pdf-btn {
+      background-color: #00ffc3;
+      border: none;
+      color: #000;
+      padding: 10px 20px;
+      font-size: 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .save-pdf-btn:hover {
+      background-color: #00cca3;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      header {
+        font-size: 1.5em;
+      }
+
+      .nav-btn {
+        font-size: 30px;
+        padding: 8px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>📸 معرض الصور الخرافي</header>
+
+  <div class="container">
+    <div class="image-box">
+      <img src="YASSIN (1).png" alt="الصورة الأولى" onclick="showLightbox(this.src)">
+    </div>
+    <div class="image-box">
+      <img src="IMG_20250415_0002.png" alt="الصورة الثانية" onclick="showLightbox(this.src)">
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox">
+    <span class="close-btn" onclick="hideLightbox()">×</span>
+    <img id="lightbox-img" src="" alt="عرض الصورة" onclick="zoomImage(event)">
+    <span class="nav-btn prev-btn" onclick="changeImage(-1)">&#10094;</span>
+    <span class="nav-btn next-btn" onclick="changeImage(1)">&#10095;</span>
+  </div>
+
+  <div style="text-align:center; margin: 30px;">
+    <button class="save-pdf-btn" onclick="downloadImages()">📥 تنزيل الصور في PDF</button>
+  </div>
+
+  <script>
+    let images = [];
+    let currentImageIndex = -1;
+    let zoomed = false;
+
+    function showLightbox(src) {
+      images = document.querySelectorAll('.image-box img');
+      currentImageIndex = Array.from(images).findIndex(image => image.src === src);
+      const lightboxImg = document.getElementById('lightbox-img');
+      lightboxImg.src = src;
+      lightboxImg.style.transform = "scale(1)";
+      zoomed = false;
+      document.getElementById('lightbox').classList.add('active');
+    }
+
+    function hideLightbox() {
+      document.getElementById('lightbox').classList.remove('active');
+      const lightboxImg = document.getElementById('lightbox-img');
+      lightboxImg.style.transform = "scale(1)";
+      zoomed = false;
+    }
+
+    function changeImage(direction) {
+      images = document.querySelectorAll('.image-box img');
+      currentImageIndex += direction;
+      if (currentImageIndex < 0) currentImageIndex = images.length - 1;
+      if (currentImageIndex >= images.length) currentImageIndex = 0;
+      const lightboxImg = document.getElementById('lightbox-img');
+      lightboxImg.src = images[currentImageIndex].src;
+      lightboxImg.style.transform = "scale(1)";
+      zoomed = false;
+    }
+
+    function zoomImage(event) {
+      zoomed = !zoomed;
+      event.target.style.transform = zoomed ? "scale(2.5)" : "scale(1)";
+      event.target.style.cursor = zoomed ? "default" : "zoom-in";
+    }
+
+    function downloadImages() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      const imgs = document.querySelectorAll('.image-box img');
+      let yOffset = 10; // بداية المسافة من الأعلى للصور في PDF
+      let xOffset = 10; // بداية المسافة من اليسار للصور في PDF
+
+      imgs.forEach((img, index) => {
+        const imgSrc = img.src;
+        const imgName = `image_${index + 1}.png`;
+
+        // تحميل الصورة وتحويلها إلى تنسيق بيانات Base64
+        const imgData = imgSrc; // الصور هنا ستكون بصيغة Base64
+
+        // إضافة الصورة إلى PDF
+        doc.addImage(imgData, 'PNG', xOffset, yOffset, 180, 160); // يمكنك تغيير المقاسات حسب الحاجة
+        yOffset += 170; // زيادة المسافة بين الصور
+
+        // إذا كانت الصورة تجاوزت الصفحة، أضف صفحة جديدة
+        if (yOffset > 280) {
+          doc.addPage();
+          yOffset = 10; // إعادة تعيين المسافة بعد الصفحة الجديدة
+        }
+      });
+
+      // تنزيل ملف PDF
+      doc.save('images.pdf');
+    }
+
+    document.addEventListener('keydown', function(e) {
+      const lightbox = document.getElementById('lightbox');
+      if (!lightbox.classList.contains('active')) return;
+
+      switch (e.key) {
+        case 'ArrowRight':
+          changeImage(1);
+          break;
+        case 'ArrowLeft':
+          changeImage(-1);
+          break;
+        case 'Escape':
+          hideLightbox();
+          break;
+      }
+    });
+  </script>
+
+</body>
+</html>
