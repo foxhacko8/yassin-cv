@@ -124,6 +124,14 @@
       background-color: #00cca3;
     }
 
+    .pdf-link {
+      display: block;
+      margin-top: 15px;
+      color: #00ffc3;
+      font-size: 16px;
+      text-decoration: underline;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(30px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -162,7 +170,8 @@
   </div>
 
   <div style="text-align:center; margin: 30px;">
-    <button class="save-pdf-btn" onclick="downloadImages()">📥 تنزيل الصور في PDF</button>
+    <button class="save-pdf-btn" onclick="saveImagesToPDF()">📄 حفظ الصور كـ PDF</button>
+    <a id="download-link" class="pdf-link" style="display: none;" href="#" download="gallery.pdf">📥 تحميل ملف PDF</a>
   </div>
 
   <script>
@@ -204,34 +213,33 @@
       event.target.style.cursor = zoomed ? "default" : "zoom-in";
     }
 
-    function downloadImages() {
+    async function saveImagesToPDF() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-
       const imgs = document.querySelectorAll('.image-box img');
-      let yOffset = 10; // بداية المسافة من الأعلى للصور في PDF
-      let xOffset = 10; // بداية المسافة من اليسار للصور في PDF
 
-      imgs.forEach((img, index) => {
-        const imgSrc = img.src;
-        const imgName = `image_${index + 1}.png`;
+      for (let i = 0; i < imgs.length; i++) {
+        const img = imgs[i];
+        const imgData = await fetch(img.src)
+          .then(res => res.blob())
+          .then(blob => new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          }));
 
-        // تحميل الصورة وتحويلها إلى تنسيق بيانات Base64
-        const imgData = imgSrc; // الصور هنا ستكون بصيغة Base64
+        const imgProps = doc.getImageProperties(imgData);
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        // إضافة الصورة إلى PDF
-        doc.addImage(imgData, 'PNG', xOffset, yOffset, 180, 160); // يمكنك تغيير المقاسات حسب الحاجة
-        yOffset += 170; // زيادة المسافة بين الصور
-
-        // إذا كانت الصورة تجاوزت الصفحة، أضف صفحة جديدة
-        if (yOffset > 280) {
-          doc.addPage();
-          yOffset = 10; // إعادة تعيين المسافة بعد الصفحة الجديدة
+        if (i > 0) {
+          doc.addPage(); // إضافة صفحة جديدة بعد الصورة الأولى
         }
-      });
 
-      // تنزيل ملف PDF
-      doc.save('images.pdf');
+        doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      }
+
+      doc.save("gallery.pdf");
     }
 
     document.addEventListener('keydown', function(e) {
